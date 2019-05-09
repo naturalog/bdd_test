@@ -16,7 +16,8 @@ void bdd::init() {
 	bdd b;
 	b.v = 0, b.h = b.l = 0;
 	V.push_back(b); // dummy
-	F = -(T = add(0, 0, 1));
+	T = 1, F = -1;
+	assert(T == add(0, 0, 1));
 }
 
 int_t bdd::add(size_t v, int_t h, int_t l) {
