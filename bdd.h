@@ -63,4 +63,3 @@ public:
 };
 
 int_t bdd_and(int_t x, int_t y);
-std::vector<std::vector<bool>> allsat(int_t x, size_t nvars);

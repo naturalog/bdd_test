@@ -9,6 +9,8 @@ vector<bdd> bdd::V;
 unordered_map<ite_memo, int_t> bdd::C;
 set<int_t> bdd::G;
 bool bdd::onexit = false;
+typedef vector<bool> bools;
+typedef vector<bools> vbools;
 
 int_t bdd_and(int_t x, int_t y) {
 	if (x == F || y == F) return F;
@@ -23,22 +25,23 @@ int_t bdd_and(int_t x, int_t y) {
 	return bdd::add(a.v, bdd_and(a.h, b.h), bdd_and(a.l, b.l));
 }
 
-void sat(size_t v, size_t nvars, int_t t, std::vector<bool>& p, std::vector<std::vector<bool>>& r) {
+void sat(size_t v, size_t nvars, int_t t, bools& p, vbools& r, bool neg) {
 	if (bdd::leaf(t) && !bdd::trueleaf(t)) return;
 	const bdd &x = getnode(abs(t));
+	if (t < 0) neg = !neg;
 	if (!bdd::leaf(t) && v < x.v)
-		p[v-1] = true,  sat(v + 1, nvars, t, p, r),
-		p[v-1] = false, sat(v + 1, nvars, t, p, r);
+		p[v - 1] = !neg, sat(v + 1, nvars, t, p, r, neg),
+		p[v - 1] = neg, sat(v + 1, nvars, t, p, r, neg);
 	else if (v != nvars)
-		p[v-1] = true,  sat(v + 1, nvars, x.h, p, r),
-		p[v-1] = false, sat(v + 1, nvars, x.l, p, r);
+		p[v - 1] = !neg,  sat(v + 1, nvars, x.h, p, r, neg),
+		p[v - 1] = neg, sat(v + 1, nvars, x.l, p, r, neg);
 	else	r.push_back(p);
 }
 
-std::vector<std::vector<bool>> allsat(int_t x, size_t nvars) {
-	std::vector<bool> p(nvars);
-	std::vector<std::vector<bool>> r;
-	return sat(1, nvars + 1, x, p, r), r;
+vbools allsat(int_t x, size_t nvars) {
+	bools p(nvars);
+	vbools r;
+	return sat(1, nvars + 1, x, p, r, false), r;
 }
 
 size_t std::hash<bdd>::operator()(const bdd& b) const { return b.hash; }
@@ -58,12 +61,12 @@ bdd::~bdd() {
 
 void bdd::decref() {}// if (refs && !--refs) G.insert(this - &V[0]); }
 
-wostream& operator<<(wostream& os, const std::vector<bool>& x) {
+wostream& operator<<(wostream& os, const bools& x) {
 	for (auto y : x) os << (y ? 1 : 0);
 	return os;
 }
 
-wostream& operator<<(wostream& os, const std::vector<std::vector<bool>>& x) {
+wostream& operator<<(wostream& os, const vbools& x) {
 	for (auto y : x) os << y << endl;
 	return os;
 }
@@ -73,6 +76,7 @@ int main() {
 	int_t x = bdd::from_bit(0, true);
 	int_t y = bdd::from_bit(1, false);
 	int_t z = bdd_and(x, y);
+	assert(bdd::from_bit(0, true) == -bdd::from_bit(0, false));
 	assert(bdd::from_bit(3, true) == -bdd::from_bit(3, false));
 	wcout << allsat(x, 2) << endl << endl;
 	wcout << allsat(y, 2) << endl << endl;
