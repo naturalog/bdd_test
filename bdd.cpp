@@ -1,4 +1,3 @@
-#include <iostream>
 #include <cassert>
 #include "bdd.h"
 using namespace std;
@@ -13,12 +12,10 @@ typedef vector<bool> bools;
 typedef vector<bools> vbools;
 
 void bdd::init() {
-	bdd b;
-	b.v = 0, b.h = b.l = 0;
+	bdd b(0, 0, 0);
 	V.push_back(b); // dummy
-	T = 1, F = -1;
-	b.v = 0, b.h = b.l = 1;
-	V.push_back(std::move(b)), M.emplace(V.back(), V.size() - 1);
+	T = 1, F = -1, b.h = b.l = 1, b.rehash();
+	V.push_back(std::move(b)), M.emplace(V.back(), 1);
 }
 
 int_t bdd::add(size_t v, int_t h, int_t l) {
@@ -91,6 +88,13 @@ bdd::~bdd() {
 	decref(), getnode(abs(h)).decref(), getnode(abs(l)).decref();
 }
 
+wostream& bdd::out(wostream& os, int_t x) {
+	if (leaf(x)) return os << (trueleaf(x) ? L'T' : L'F');
+	if (x < 0) x = -x, os << L'~';
+	const bdd& b = getnode(x);
+	return out(out(os << b.v << L" ? ", b.h) << L" : ", b.l);
+}
+
 void bdd::decref() {}// if (refs && !--refs) G.insert(this - &V[0]); }
 
 wostream& operator<<(wostream& os, const bools& x) {
@@ -110,9 +114,12 @@ int main() {
 	int_t z = bdd_and(x, y);
 	assert(bdd::from_bit(0, true) == -bdd::from_bit(0, false));
 	assert(bdd::from_bit(3, true) == -bdd::from_bit(3, false));
-	wcout << allsat(x, 1) << endl << endl;
-	wcout << allsat(y, 2) << endl << endl;
-	wcout << allsat(z, 3) << endl;
+	bdd::out(wcout, x) << endl;
+	bdd::out(wcout, y) << endl;
+	bdd::out(wcout, z) << endl << endl;
+	wcout << allsat(x, 1) << endl;
+	wcout << allsat(y, 2) << endl;
+	wcout << allsat(z, 2) << endl;
 	bdd::onexit = true;
 	return 0;
 }

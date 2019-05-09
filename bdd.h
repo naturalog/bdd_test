@@ -3,6 +3,7 @@
 #include <set>
 #include <map>
 #include <array>
+#include <iostream>
 
 #define getnode(x) bdd::V[x]
 #define hash_pair(x, y) \
@@ -37,6 +38,7 @@ public:
 	static bool trueleaf(int_t t) { return t > 0; }
 	static int_t add(size_t v, int_t h, int_t l);
 	static int_t from_bit(size_t b, bool v);
+	static std::wostream& out(std::wostream& os, int_t x);
 	static void gc();
 	~bdd();
 };
