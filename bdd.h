@@ -56,7 +56,7 @@ public:
 			M.emplace(V.back(), V.size() - 1), V.size() - 1;
 	}
 	static int_t from_bit(size_t b, bool v) {
-		return v ? add(b+1, T, F) : add(b+1, F, T);
+		return v ? add(b + 1, T, F) : add(b + 1, F, T);
 	}
 	static void gc();
 	~bdd();

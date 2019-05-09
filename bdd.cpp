@@ -1,4 +1,5 @@
 #include <iostream>
+#include <cassert>
 #include "bdd.h"
 using namespace std;
 
@@ -72,6 +73,7 @@ int main() {
 	int_t x = bdd::from_bit(0, true);
 	int_t y = bdd::from_bit(1, false);
 	int_t z = bdd_and(x, y);
+	assert(bdd::from_bit(3, true) == -bdd::from_bit(3, false));
 	wcout << allsat(x, 2) << endl << endl;
 	wcout << allsat(y, 2) << endl << endl;
 	wcout << allsat(z, 3) << endl;
