@@ -79,7 +79,9 @@ size_t std::hash<ite_memo>::operator()(const ite_memo& m) const {
 }
 
 bdd::bdd(size_t v, int_t h, int_t l) : v(v), refs(1), h(h), l(l) {
-	rehash(), ++getnode(abs(h)).refs, ++getnode(abs(l)).refs;
+	rehash();
+	if (h && !leaf(h)) ++getnode(abs(h)).refs;
+	if (l && !leaf(l)) ++getnode(abs(l)).refs;
 }
 
 bdd::~bdd() {

@@ -33,8 +33,8 @@ public:
 		return hash == b.hash && v == b.v && h == b.h && l == b.l;
 	}
 	static void init();
-	static bool leaf(size_t t) { return !V[t].v; }
-	static bool trueleaf(size_t t) { return t > 0; }
+	static bool leaf(int_t t) { return abs(t) == T; } //!V[abs(t)].v; }
+	static bool trueleaf(int_t t) { return t > 0; }
 	static int_t add(size_t v, int_t h, int_t l);
 	static int_t from_bit(size_t b, bool v);
 	static void gc();
