@@ -17,7 +17,7 @@ void bdd::init() {
 	b.v = 0, b.h = b.l = 0;
 	V.push_back(b); // dummy
 	T = 1, F = -1;
-	assert(T == add(0, 0, 1));
+	assert(T == add(0, 1, 1));
 }
 
 int_t bdd::add(size_t v, int_t h, int_t l) {
@@ -62,7 +62,7 @@ void sat(size_t v, size_t nvars, int_t t, bools& p, vbools& r, bool neg) {
 		p[v - 1] = !neg, sat(v + 1, nvars, t, p, r, neg),
 		p[v - 1] = neg, sat(v + 1, nvars, t, p, r, neg);
 	else if (v != nvars)
-		p[v - 1] = !neg,  sat(v + 1, nvars, x.h, p, r, neg),
+		p[v - 1] = !neg, sat(v + 1, nvars, x.h, p, r, neg),
 		p[v - 1] = neg, sat(v + 1, nvars, x.l, p, r, neg);
 	else	r.push_back(p);
 }
