@@ -17,7 +17,8 @@ void bdd::init() {
 	b.v = 0, b.h = b.l = 0;
 	V.push_back(b); // dummy
 	T = 1, F = -1;
-	assert(T == add(0, 1, 1));
+	b.v = 0, b.h = b.l = 1;
+	V.push_back(std::move(b)), M.emplace(V.back(), V.size() - 1);
 }
 
 int_t bdd::add(size_t v, int_t h, int_t l) {
@@ -56,15 +57,15 @@ int_t bdd_and(int_t x, int_t y) {
 void sat(size_t v, size_t nvars, int_t t, bools& p, vbools& r, bool neg) {
 	if (bdd::leaf(t) && !bdd::trueleaf(t)) return;
 	const bdd &x = getnode(abs(t));
-	if (t < 0) neg = !neg;
 	if (!bdd::leaf(t)) assert(x.l > 0);
 	if (!bdd::leaf(t) && v < x.v)
 		p[v - 1] = !neg, sat(v + 1, nvars, t, p, r, neg),
 		p[v - 1] = neg, sat(v + 1, nvars, t, p, r, neg);
-	else if (v != nvars)
+	else if (v != nvars) {
+		if (t < 0) neg = !neg;
 		p[v - 1] = !neg, sat(v + 1, nvars, x.h, p, r, neg),
 		p[v - 1] = neg, sat(v + 1, nvars, x.l, p, r, neg);
-	else	r.push_back(p);
+	} else	r.push_back(p);
 }
 
 vbools allsat(int_t x, size_t nvars) {
@@ -109,7 +110,7 @@ int main() {
 	int_t z = bdd_and(x, y);
 	assert(bdd::from_bit(0, true) == -bdd::from_bit(0, false));
 	assert(bdd::from_bit(3, true) == -bdd::from_bit(3, false));
-	wcout << allsat(x, 2) << endl << endl;
+	wcout << allsat(x, 1) << endl << endl;
 	wcout << allsat(y, 2) << endl << endl;
 	wcout << allsat(z, 3) << endl;
 	bdd::onexit = true;
