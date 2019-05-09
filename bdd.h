@@ -36,7 +36,7 @@ public:
 		bdd b;
 		b.v = 0, b.h = b.l = 0;
 		V.push_back(b); // dummy
-		F = -(T = add(0, 0, 0));
+		F = -(T = add(0, 0, 1));
 	}
 	static bool leaf(size_t t) { return !V[t].v; }
 	static bool trueleaf(size_t t) { return t > 0; }
