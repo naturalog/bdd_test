@@ -55,7 +55,7 @@ bdd::~bdd() {
 	decref(), getnode(abs(h)).decref(), getnode(abs(l)).decref();
 }
 
-void bdd::decref() { if (refs && !--refs) G.insert(this - &V[0]); }
+void bdd::decref() {}// if (refs && !--refs) G.insert(this - &V[0]); }
 
 wostream& operator<<(wostream& os, const std::vector<bool>& x) {
 	for (auto y : x) os << (y ? 1 : 0);

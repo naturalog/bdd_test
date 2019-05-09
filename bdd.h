@@ -41,12 +41,17 @@ public:
 	static bool leaf(size_t t) { return !V[t].v; }
 	static bool trueleaf(size_t t) { return t > 0; }
 	static int_t add(size_t v, int_t h, int_t l) {
+		if (h == l) return h;
 		if (l < 0) {
 			bdd b(v, -h, -l);
+			auto it = M.find(b);
+			if (it != M.end()) return it->second;
 			return V.push_back(std::move(b)),
 			       M.emplace(V.back(), V.size() - 1), -V.size()+1;
 		}
 		bdd b(v, h, l);
+		auto it = M.find(b);
+		if (it != M.end()) return it->second;
 		return	V.push_back(std::move(b)),
 			M.emplace(V.back(), V.size() - 1), V.size()-1;
 	}
