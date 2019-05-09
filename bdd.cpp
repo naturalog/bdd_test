@@ -12,6 +12,33 @@ bool bdd::onexit = false;
 typedef vector<bool> bools;
 typedef vector<bools> vbools;
 
+void bdd::init() {
+	bdd b;
+	b.v = 0, b.h = b.l = 0;
+	V.push_back(b); // dummy
+	F = -(T = add(0, 0, 1));
+}
+
+int_t bdd::add(size_t v, int_t h, int_t l) {
+	if (h == l) return h;
+	if (l < 0) {
+		bdd b(v, -h, -l);
+		auto it = M.find(b);
+		if (it != M.end()) return -it->second;
+		return V.push_back(std::move(b)),
+		       M.emplace(V.back(), V.size() - 1), -V.size() + 1;
+	}
+	bdd b(v, h, l);
+	auto it = M.find(b);
+	if (it != M.end()) return it->second;
+	return	V.push_back(std::move(b)),
+		M.emplace(V.back(), V.size() - 1), V.size() - 1;
+}
+
+int_t bdd::from_bit(size_t b, bool v) {
+	return v ? add(b + 1, T, F) : add(b + 1, F, T);
+}
+
 int_t bdd_and(int_t x, int_t y) {
 	if (x == F || y == F) return F;
 	if (x == T || x == y) return y;
@@ -29,6 +56,7 @@ void sat(size_t v, size_t nvars, int_t t, bools& p, vbools& r, bool neg) {
 	if (bdd::leaf(t) && !bdd::trueleaf(t)) return;
 	const bdd &x = getnode(abs(t));
 	if (t < 0) neg = !neg;
+	if (!bdd::leaf(t)) assert(x.l > 0);
 	if (!bdd::leaf(t) && v < x.v)
 		p[v - 1] = !neg, sat(v + 1, nvars, t, p, r, neg),
 		p[v - 1] = neg, sat(v + 1, nvars, t, p, r, neg);

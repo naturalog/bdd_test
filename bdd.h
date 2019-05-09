@@ -32,32 +32,11 @@ public:
 	bool operator==(const bdd& b) const {
 		return hash == b.hash && v == b.v && h == b.h && l == b.l;
 	}
-	static void init() {
-		bdd b;
-		b.v = 0, b.h = b.l = 0;
-		V.push_back(b); // dummy
-		F = -(T = add(0, 0, 1));
-	}
+	static void init();
 	static bool leaf(size_t t) { return !V[t].v; }
 	static bool trueleaf(size_t t) { return t > 0; }
-	static int_t add(size_t v, int_t h, int_t l) {
-		if (h == l) return h;
-		if (l < 0) {
-			bdd b(v, -h, -l);
-			auto it = M.find(b);
-			if (it != M.end()) return -it->second;
-			return V.push_back(std::move(b)),
-			       M.emplace(V.back(), V.size() - 1), -V.size() + 1;
-		}
-		bdd b(v, h, l);
-		auto it = M.find(b);
-		if (it != M.end()) return it->second;
-		return	V.push_back(std::move(b)),
-			M.emplace(V.back(), V.size() - 1), V.size() - 1;
-	}
-	static int_t from_bit(size_t b, bool v) {
-		return v ? add(b + 1, T, F) : add(b + 1, F, T);
-	}
+	static int_t add(size_t v, int_t h, int_t l);
+	static int_t from_bit(size_t b, bool v);
 	static void gc();
 	~bdd();
 };
