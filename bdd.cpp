@@ -39,19 +39,21 @@ int_t bdd::from_bit(size_t b, bool v) {
 }
 
 int_t bdd::bdd_and(int_t x, int_t y) {
+	assert(x && y);
 	if (x == F || y == F) return F;
 	if (x == T || x == y) return y;
 	if (y == T) return x;
 	if (x == -y) return F;
-	if (V[x].v < V[y].v)
-		return add(V[x].v, bdd_and(hi(x), y), bdd_and(lo(x), y));
-	if (V[x].v > V[y].v)
-		return add(V[y].v, bdd_and(x, hi(y)), bdd_and(x, lo(y)));
-	return add(V[x].v, bdd_and(hi(x), hi(y)), bdd_and(lo(x), lo(y)));
+	const size_t vx = V[abs(x)].v, vy = V[abs(y)].v;
+	if (vx < vy)
+		return add(vx, bdd_and(hi(x), y), bdd_and(lo(x), y));
+	if (vx > vy)
+		return add(vy, bdd_and(x, hi(y)), bdd_and(x, lo(y)));
+	return add(vx, bdd_and(hi(x), hi(y)), bdd_and(lo(x), lo(y)));
 }
 
 void sat(size_t v, size_t nvars, int_t t, bools& p, vbools& r, bool neg) {
-	if (bdd::leaf(t) && neg) t = -t;
+//	if (bdd::leaf(t) && neg) t = -t;
 	if (bdd::leaf(t) && !bdd::trueleaf(t)) return;
 //	if (!bdd::leaf(t)) assert(bdd::lo(t) > 0);
 	if (!bdd::leaf(t) && v < getnode(abs(t)).v)
@@ -117,7 +119,7 @@ int main() {
 	wcout << allsat(x, 2) << endl;
 	wcout << allsat(y, 2) << endl;
 	wcout << allsat(z, 2) << endl;
-	z = bdd::bdd_and(z, bdd::from_bit(0, false));
+	z = bdd::bdd_and(z, bdd::from_bit(2, false));
 	bdd::out(wcout, z) << endl << endl;
 	wcout << allsat(z, 3) << endl;
 	bdd::onexit = true;
