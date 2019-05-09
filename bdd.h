@@ -25,11 +25,11 @@ class bdd {
 	static std::unordered_map<bdd, int_t> M;
 	static std::unordered_map<ite_memo, int_t> C;
 	static std::set<int_t> G;
+	int_t h, l;
 public:
 	static std::vector<bdd> V;
 	static bool onexit;
 	size_t v, refs, hash;
-	int_t h, l;
 	bool operator==(const bdd& b) const {
 		return hash == b.hash && v == b.v && h == b.h && l == b.l;
 	}
@@ -40,7 +40,8 @@ public:
 	static int_t from_bit(size_t b, bool v);
 	static std::wostream& out(std::wostream& os, int_t x);
 	static void gc();
+	static int_t hi(int_t x) { return x > 0 ? V[x].h : -V[-x].h; }
+	static int_t lo(int_t x) { return x > 0 ? V[x].l : -V[-x].l; }
+	static int_t bdd_and(int_t x, int_t y);
 	~bdd();
 };
-
-int_t bdd_and(int_t x, int_t y);
