@@ -117,7 +117,7 @@ int main() {
 	wcout << allsat(x, 2) << endl;
 	wcout << allsat(y, 2) << endl;
 	wcout << allsat(z, 2) << endl;
-	z = bdd::bdd_and(z, bdd::from_bit(2, false));
+	z = bdd::bdd_and(z, bdd::from_bit(0, false));
 	bdd::out(wcout, z) << endl << endl;
 	wcout << allsat(z, 3) << endl;
 	bdd::onexit = true;
