@@ -45,15 +45,15 @@ public:
 		if (l < 0) {
 			bdd b(v, -h, -l);
 			auto it = M.find(b);
-			if (it != M.end()) return it->second;
+			if (it != M.end()) return -it->second;
 			return V.push_back(std::move(b)),
-			       M.emplace(V.back(), V.size() - 1), -V.size()+1;
+			       M.emplace(V.back(), V.size() - 1), -V.size() + 1;
 		}
 		bdd b(v, h, l);
 		auto it = M.find(b);
 		if (it != M.end()) return it->second;
 		return	V.push_back(std::move(b)),
-			M.emplace(V.back(), V.size() - 1), V.size()-1;
+			M.emplace(V.back(), V.size() - 1), V.size() - 1;
 	}
 	static int_t from_bit(size_t b, bool v) {
 		return v ? add(b+1, T, F) : add(b+1, F, T);
