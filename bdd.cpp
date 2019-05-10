@@ -20,7 +20,7 @@ void bdd::init() {
 	M.emplace(V.back().getkey(), 1), mark(0), mark(T), mark(F);
 }
 
-int_t bdd::add(size_t v, int_t h, int_t l) {
+int_t bdd::add(uint_t v, int_t h, int_t l) {
 	assert(v && h && l);
 	if (h == l) return h;
 	if (l < 0) {
@@ -37,7 +37,7 @@ int_t bdd::add(size_t v, int_t h, int_t l) {
 	return V.size() - 1;
 }
 
-int_t bdd::from_bit(size_t b, bool v) {
+int_t bdd::from_bit(uint_t b, bool v) {
 	return v ? add(b + 1, T, F) : add(b + 1, F, T);
 }
 
@@ -50,7 +50,7 @@ int_t bdd::bdd_and(int_t x, int_t y) {
 	if (x > y) swap(x, y);
 	auto it = C.find({x,y,F});
 	if (it != C.end()) return it->second;
-	const size_t vx = V[abs(x)].v, vy = V[abs(y)].v;
+	const uint_t vx = V[abs(x)].v, vy = V[abs(y)].v;
 	int_t r;
 	if (vx < vy) r = add(vx, bdd_and(hi(x), y), bdd_and(lo(x), y));
 	else if (vx > vy) r = add(vy, bdd_and(x, hi(y)), bdd_and(x, lo(y)));
@@ -67,8 +67,8 @@ int_t bdd::bdd_ite(int_t x, int_t y, int_t z) {
 	auto it = C.find({x, y, z});
 	if (it != C.end()) return it->second;
 	int_t r;
-	const size_t vx = V[abs(x)].v, vy = V[abs(y)].v, vz = V[abs(z)].v;
-	const size_t s = min(vx, min(vy, vz));
+	const uint_t vx = V[abs(x)].v, vy = V[abs(y)].v, vz = V[abs(z)].v;
+	const uint_t s = min(vx, min(vy, vz));
 	if (y == T) r = bdd_or(x, z);
 	else if (y == F) r = bdd_and(-x, z);
 	else if (z == F) r = bdd_and(x, y);
@@ -248,7 +248,7 @@ void bdd_handle::update(const vector<int_t>& p, const unordered_set<int_t>& G) {
 }
 #undef f
 
-void sat(size_t v, size_t nvars, int_t t, bools& p, vbools& r) {
+void sat(uint_t v, uint_t nvars, int_t t, bools& p, vbools& r) {
 	if (bdd::leaf(t) && !bdd::trueleaf(t)) return;
 	if (!bdd::leaf(t) && v < getnode(abs(t)).v)
 		p[v - 1] = true, sat(v + 1, nvars, t, p, r),
@@ -259,7 +259,7 @@ void sat(size_t v, size_t nvars, int_t t, bools& p, vbools& r) {
 	} else	r.push_back(p);
 }
 
-vbools allsat(int_t x, size_t nvars) {
+vbools allsat(int_t x, uint_t nvars) {
 	bools p(nvars);
 	vbools r;
 	return sat(1, nvars + 1, x, p, r), r;
@@ -275,7 +275,7 @@ size_t std::hash<bdds>::operator()(const bdds& b) const {
 	return r;
 }
 
-bdd::bdd(size_t v, int_t h, int_t l) : h(h), l(l), v(v) { rehash(); }
+bdd::bdd(uint_t v, int_t h, int_t l) : h(h), l(l), v(v) { rehash(); }
 
 wostream& bdd::out(wostream& os, int_t x) {
 	if (leaf(x)) return os << (trueleaf(x) ? L'T' : L'F');
@@ -318,7 +318,7 @@ void test_and_many() {
 
 int main() {
 	bdd::init();
-/*	test_and_many();
+	test_and_many();
 	for (size_t n = 0; n != 10000000; ++n) {
 		const int_t x = bdd::from_bit(random()%10000+1, true);
 		const int_t y = bdd::from_bit(random()%10000+1, false);
@@ -326,7 +326,7 @@ int main() {
 		const int_t t = bdd::bdd_ite(x, y, z);
 		if (random()&1) bdd::mark(t);
 		bdd::gc();
-	}*/
+	}
 	const int_t x = bdd::from_bit(0, true);
 	const int_t y = bdd::from_bit(1, false);
 	int_t z = bdd::bdd_and(x, y);
