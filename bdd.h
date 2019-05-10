@@ -42,8 +42,7 @@ public:
 	bdd(){}
 	bdd(size_t v, int_t h, int_t l);
 	static std::vector<bdd> V;
-	static bool onexit;
-	size_t v, /*refs,*/ hash;
+	size_t v, hash;
 	key getkey() const { return { hash, v, h, l }; }
 	inline bool operator==(const bdd& b) const {
 		return hash == b.hash && v == b.v && h == b.h && l == b.l;

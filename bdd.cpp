@@ -10,7 +10,6 @@ unordered_map<ite_memo, int_t> bdd::C;
 unordered_map<bdds, int_t> bdd::AM;
 unordered_set<int_t> bdd::S;
 unordered_map<int_t, weak_ptr<bdd_handle>> bdd_handle::M;
-bool bdd::onexit = false;
 typedef vector<bool> bools;
 typedef vector<bools> vbools;
 
@@ -28,17 +27,13 @@ int_t bdd::add(size_t v, int_t h, int_t l) {
 		key k = { hash_tri(v, -h, -l), v, -h, -l };
 		auto it = M.find(k);
 		if (it != M.end()) return -it->second;
-		onexit = true;
 		V.emplace_back(v, -h, -l), M.emplace(k, V.size() - 1);
-		onexit = false;
 		return -V.size() + 1;
 	}
 	key k = { hash_tri(v, h, l), v, h, l };
 	auto it = M.find(k);
 	if (it != M.end()) return it->second;
-	onexit = true;
 	V.emplace_back(v, h, l), M.emplace(k, V.size() - 1);
-	onexit = false;
 	return V.size() - 1;
 }
 
@@ -323,7 +318,7 @@ void test_and_many() {
 
 int main() {
 	bdd::init();
-	test_and_many();
+/*	test_and_many();
 	for (size_t n = 0; n != 10000000; ++n) {
 		const int_t x = bdd::from_bit(random()%10000+1, true);
 		const int_t y = bdd::from_bit(random()%10000+1, false);
@@ -331,7 +326,7 @@ int main() {
 		const int_t t = bdd::bdd_ite(x, y, z);
 		if (random()&1) bdd::mark(t);
 		bdd::gc();
-	}
+	}*/
 	const int_t x = bdd::from_bit(0, true);
 	const int_t y = bdd::from_bit(1, false);
 	int_t z = bdd::bdd_and(x, y);
@@ -343,11 +338,10 @@ int main() {
 	wcout << allsat(x, 2) << endl;
 	wcout << allsat(y, 2) << endl;
 	wcout << allsat(z, 2) << endl;
-	z = bdd::bdd_and(z, bdd::from_bit(2, false));
-	bdd::out(wcout, z) << endl << endl;
-	wcout << allsat(z, 3) << endl;
-	z = bdd::bdd_or(x, y);
-	wcout <<endl << allsat(z, 2) << endl;
-	bdd::onexit = true;
+//	z = bdd::bdd_and(z, bdd::from_bit(2, false));
+//	bdd::out(wcout, z) << endl << endl;
+//	wcout << allsat(z, 3) << endl;
+//	z = bdd::bdd_or(x, y);
+//	wcout <<endl << allsat(z, 2) << endl;
 	return 0;
 }
