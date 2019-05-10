@@ -103,7 +103,7 @@ void bdd::mark_all(int_t i) {
 }
 
 void bdd::gc() {
-	if (V.size() - S.size() && V.size() / (V.size() - S.size()) >= 3) return;
+	if (V.size() - S.size() < 1000000) return;
 	for (int_t i : S) mark_all(i);
 	if (V.size() == S.size()) return;
 	unordered_set<int_t> G;
@@ -115,7 +115,7 @@ void bdd::gc() {
 	for (size_t n = 0, k = 0; n != V.size(); ++n)
 		if (G.find(n) != G.end())
 			p[V.size() - ++k] = n, V[n] = V[V.size() - k];
-	wcout << G.size() << endl;
+	wcout << G.size() << ' ' << V.size() << endl;
 	M.clear(), V.resize(V.size() - G.size());
 #define f(i) (i = (i >= 0 ? p[i] ? p[i] : i : p[-i] ? -p[-i] : i))
 	for (size_t n = 2; n != V.size(); ++n) {
@@ -125,16 +125,17 @@ void bdd::gc() {
 	}
 	unordered_map<ite_memo, int_t> c;
 	for (pair<ite_memo, int_t> x : C)
-		if (!(	has(G, x.first[0]) ||
-			has(G, x.first[1]) ||
-			has(G, x.first[2]) ||
-			has(G, x.second)))
+		if (!(	has(G, abs(x.first[0])) ||
+			has(G, abs(x.first[1])) ||
+			has(G, abs(x.first[2])) ||
+			has(G, abs(x.second))))
 			f(x.first[0]), f(x.first[1]), f(x.first[2]),
 			f(x.second), c.emplace(x.first, x.second);
 #undef f
+	wcout << c.size() << ' ' << C.size();
 	C = move(c), G.clear();
 	for (size_t n = 0; n < V.size(); ++n) M.emplace(V[n].getkey(), n);
-	wcout << c.size() << ' ' << C.size() << ' ' << V.size() << endl;
+	wcout << ' ' << V.size() << endl;
 }
 
 void sat(size_t v, size_t nvars, int_t t, bools& p, vbools& r) {

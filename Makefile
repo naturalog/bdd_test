@@ -1,2 +1,2 @@
 all:
-	g++ -std=c++1z bdd.cpp -W -Wall -Wpedantic -g #-flto -O3
+	g++ -std=c++1z bdd.cpp -W -Wall -Wpedantic -flto -O3
