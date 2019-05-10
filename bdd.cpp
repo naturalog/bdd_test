@@ -9,6 +9,7 @@ vector<bdd> bdd::V;
 unordered_map<ite_memo, int_t> bdd::C;
 unordered_map<bdds, int_t> bdd::AM;
 unordered_set<int_t> bdd::S;
+unordered_map<int_t, weak_ptr<bdd_handle>> bdd_handle::M;
 bool bdd::onexit = false;
 typedef vector<bool> bools;
 typedef vector<bools> vbools;
@@ -236,12 +237,21 @@ void bdd::gc() {
 		if (b || has(G, x.second)) continue;
 		f(x.second), am.emplace(x.first, x.second);
 	}
-#undef f
 	wcout << c.size() << ' ' << C.size();
+	bdd_handle::update(p, G);
 	C = move(c), AM = move(am), G.clear();
 	for (size_t n = 0; n < V.size(); ++n) M.emplace(V[n].getkey(), n);
 	wcout << ' ' << V.size() << endl;
 }
+
+void bdd_handle::update(const vector<int_t>& p, const unordered_set<int_t>& G) {
+	std::unordered_map<int_t, std::weak_ptr<bdd_handle>> m;
+	for (pair<int_t, std::weak_ptr<bdd_handle>> x : m)
+		assert(!has(G, x.first)), f(x.first), f(x.second.lock()->b),
+		m.emplace(x.first,x.second);
+	M = move(m);
+}
+#undef f
 
 void sat(size_t v, size_t nvars, int_t t, bools& p, vbools& r) {
 	if (bdd::leaf(t) && !bdd::trueleaf(t)) return;
@@ -291,13 +301,14 @@ wostream& operator<<(wostream& os, const vbools& x) {
 
 int_t rand_bdd(int_t n = 5) {
 	if (!n) return bdd::bdd_ite(
-			bdd::from_bit(random()%10+1, random()&1),
-			bdd::from_bit(random()%10+1, random()&1),
-			bdd::from_bit(random()%10+1, random()&1));
+			bdd::from_bit(random()%10, random()&1),
+			bdd::from_bit(random()%10, random()&1),
+			bdd::from_bit(random()%10, random()&1));
 	return bdd::bdd_ite(rand_bdd(n-1), rand_bdd(n-1), rand_bdd(n-1));
 }
 
 void test_and_many() {
+	set<spbdd_handle> s;
 	for (size_t k = 0; k != 100; ++k) {
 		bdds b;
 		for (size_t n = 0; n != 8; ++n) b.push_back(rand_bdd());
@@ -305,7 +316,7 @@ void test_and_many() {
 		for (int_t i : b) r = bdd::bdd_and(r, i);
 		assert(r == bdd::bdd_and_many(b));
 		cout<<k<<endl;
-		if (random()&1) bdd::mark(r);
+		if (random()&1) s.insert(bdd_handle::get(r));
 		bdd::gc();
 	}
 }
