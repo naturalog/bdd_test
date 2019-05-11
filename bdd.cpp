@@ -11,6 +11,9 @@ unordered_map<bdds, int_t> bdd::AM;
 unordered_set<int_t> bdd::S;
 unordered_map<int_t, weak_ptr<bdd_handle>> bdd_handle::M;
 spbdd_handle bdd_handle::T, bdd_handle::F;
+map<bools, unordered_map<int_t, int_t>> memos_ex;
+map<uints, unordered_map<int_t, int_t>> memos_perm;
+map<pair<uints, bools>, unordered_map<int_t, int_t>> memos_perm_ex;
 
 void bdd::init() {
 	V.emplace_back(0, 0, 0), // dummy
@@ -56,6 +59,10 @@ int_t bdd::bdd_and(int_t x, int_t y) {
 	else if (vx > vy) r = add(vy, bdd_and(x, hi(y)), bdd_and(x, lo(y)));
 	else r = add(vx, bdd_and(hi(x), hi(y)), bdd_and(lo(x), lo(y)));
 	return C.emplace(ite_memo{x,y,F}, r), r;
+}
+
+int_t bdd::bdd_ite_var(uint_t x, int_t y, int_t z) {
+	return bdd_ite(from_bit(x, true), y, z);
 }
 
 int_t bdd::bdd_ite(int_t x, int_t y, int_t z) {
@@ -197,9 +204,8 @@ int_t bdd::bdd_and_many(bdds v) {
 }
 
 void bdd::gc() {
-	if (V.size() / S.size() <= 2) return;
+	if (V.size() / S.size() < 2) return;
 	for (int_t i : S) mark_all(i);
-	if (V.size() == S.size()) return;
 	unordered_set<int_t> G;
 	for (size_t n = 0; n != V.size(); ++n)
 		if (S.find(n) == S.end())
@@ -222,7 +228,32 @@ void bdd::gc() {
 			has(G, abs(x.first[2])) ||
 			has(G, abs(x.second))))
 			f(x.first[0]), f(x.first[1]), f(x.first[2]),
-			f(x.second), c.emplace(x.first, x.second);
+			c.emplace(x.first, f(x.second));
+	unordered_map<int_t, int_t> q;
+	map<bools, unordered_map<int_t, int_t>> mex;
+	map<uints, unordered_map<int_t, int_t>> mp;
+	for (const auto& x : memos_ex) {
+		for (pair<int_t, int_t> y : x.second)
+			if (!has(G, y.first) && !has(G, y.second))
+				q.emplace(f(y.first), f(y.second));
+		if (!q.empty()) mex.emplace(x.first, move(q));
+	}
+	memos_ex = move(mex);
+	for (const auto& x : memos_perm) {
+		for (pair<int_t, int_t> y : x.second)
+			if (!has(G, y.first) && !has(G, y.second))
+				q.emplace(f(y.first), f(y.second));
+		if (!q.empty()) mp.emplace(x.first, move(q));
+	}
+	memos_perm = move(mp);
+	map<pair<uints, bools>, unordered_map<int_t, int_t>> mpe;
+	for (const auto& x : memos_perm_ex) {
+		for (pair<int_t, int_t> y : x.second)
+			if (!has(G, y.first) && !has(G, y.second))
+				q.emplace(f(y.first), f(y.second));
+		if (!q.empty()) mpe.emplace(x.first, move(q));
+	}
+	memos_perm_ex = move(mpe);
 	bool b;
 	for (pair<bdds, int_t> x : AM) {
 		b = false;
@@ -255,11 +286,11 @@ spbdd_handle bdd_handle::get(int_t b) {
 	return	M.emplace(b, std::weak_ptr<bdd_handle>(h)), h;
 }
 
-spbdd_handle bdd_and(cr_spbdd_handle x, cr_spbdd_handle y) {
+spbdd_handle operator&&(cr_spbdd_handle x, cr_spbdd_handle y) {
 	return bdd_handle::get(bdd::bdd_and(x->b, y->b));
 }
 
-spbdd_handle bdd_or(cr_spbdd_handle x, cr_spbdd_handle y) {
+spbdd_handle operator||(cr_spbdd_handle x, cr_spbdd_handle y) {
 	return bdd_handle::get(bdd::bdd_or(x->b, y->b));
 }
 
@@ -292,6 +323,62 @@ vbools bdd::allsat(int_t x, uint_t nvars) {
 
 vbools allsat(cr_spbdd_handle x, uint_t nvars) {
 	return bdd::allsat(x->b, nvars);
+}
+
+int_t bdd::bdd_ex(int_t x, const bools& b, unordered_map<int_t, int_t>& memo){
+	if (leaf(x)) return x;
+	auto it = memo.find(x);
+	if (it != memo.end()) return it->second;
+	int_t r, y = x;
+	while (var(y) - 1 < b.size() && b[var(y) - 1]) {
+		r = bdd_or(hi(y), lo(y));
+		if (leaf(r)) return memo.emplace(y, r), r;
+		y = r;
+	}
+	if (var(y) - 1 >= b.size()) return y;
+	return memo.emplace(y, bdd::add(var(y), bdd_ex(hi(y), b, memo),
+				bdd_ex(lo(y), b, memo))).first->second;
+}
+
+spbdd_handle operator/(cr_spbdd_handle x, const bools& b) {
+	return bdd_handle::get(bdd::bdd_ex(x->b, b, memos_ex[b]));
+}
+
+int_t bdd::bdd_permute(const int_t& x, const uints& m,
+		unordered_map<int_t, int_t>& memo) {
+	if (leaf(x)) return x;
+	auto it = memo.find(x);
+	if (it != memo.end()) return it->second;
+	return memo.emplace(x, bdd_ite_var(m[var(x)-1],
+		bdd_permute(hi(x), m, memo),
+		bdd_permute(lo(x), m, memo))).first->second;
+}
+
+spbdd_handle operator^(cr_spbdd_handle x, const uints& m) {
+	return bdd_handle::get(bdd::bdd_permute(x->b, m, memos_perm[m]));
+}
+
+int_t bdd::bdd_permute_ex(int_t x, const bools& b, const uints& m, size_t last,
+	unordered_map<int_t, int_t>& memo) {
+	if (leaf(x) || var(x) > last + 1) return x;
+	auto it = memo.find(x);
+	if (it != memo.end()) return it->second;
+	int_t t = x, y = x;
+	DBG(assert(b.size() >= var(x));)
+	for (int_t r; var(y)-1 < b.size() && b[var(y)-1]; y = r)
+		if (leaf((r = bdd_or(hi(y), lo(y)))))
+			return memo.emplace(t, r), r;
+		DBG(else assert(b.size() >= var(r));)
+	DBG(assert(!leaf(y) && m.size() >= var(y));)
+	return	memo.emplace(t, bdd_ite_var(m[var(y)-1],
+		bdd_permute_ex(hi(y), b, m, last, memo),
+		bdd_permute_ex(lo(y), b, m, last, memo))).first->second;
+}
+
+int_t bdd::bdd_permute_ex(int_t x, const bools& b, const uints& m) {
+	size_t last = 0;
+	for (size_t n = 0; n != b.size(); ++n) if (b[n] || m[n] != n) last = n;
+	return bdd_permute_ex(x, b, m, last, memos_perm_ex[{m,b}]);
 }
 
 spbdd_handle bdd_handle::get(uint_t v, cr_spbdd_handle h, cr_spbdd_handle l) {
@@ -354,11 +441,10 @@ void test_and_many() {
 		bdd_handles b;
 		for (size_t n = 0; n != 8; ++n) b.push_back(rand_bdd());
 		spbdd_handle r = bdd_handle::T;
-		for (cr_spbdd_handle i : b) r = bdd_and(r, i);
+		for (cr_spbdd_handle i : b) r = r && i;
 		assert(r == bdd_and_many(b));
 		cout<<k<<endl;
 		if (random()&1) s.insert(r);
-		bdd::gc();
 	}
 }
 
@@ -366,17 +452,16 @@ int main() {
 	bdd::init();
 	test_and_many();
 	set<spbdd_handle> s;
-	for (size_t n = 0; n != 10000000; ++n) {
+	for (size_t n = 0; n != 100000; ++n) {
 		const spbdd_handle x = from_bit(random()%10000+1, true);
 		const spbdd_handle y = from_bit(random()%10000+1, false);
 		const spbdd_handle z = from_bit(random()%10000+1, false);
 		const spbdd_handle t = bdd_ite(x, y, z);
 		if (random()&1) s.insert(t);
-		bdd::gc();
 	}
 	const spbdd_handle x = from_bit(0, true);
 	const spbdd_handle y = from_bit(1, false);
-	spbdd_handle z = bdd_and(x, y);
+	spbdd_handle z = x && y;
 	assert(from_bit(0, true)->b == -from_bit(0, false)->b);
 	assert(from_bit(3, true)->b == -from_bit(3, false)->b);
 	out(wcout, x) << endl;

@@ -13,9 +13,17 @@
 #define hash_tri(x, y, z) hash_pair(hash_pair(x, y), z)
 #define has(x, y) ((x).find(y) != (x).end())
 #define hasb(x, y) std::binary_search(x.begin(), x.end(), y)
+#ifdef DEBUG
+#define DBG(x) x
+#define NDBG(x)
+#else
+#define DBG(x)
+#define NDBG(x) x
+#endif
 
 typedef int32_t int_t;
 typedef uint32_t uint_t;
+typedef std::vector<uint_t> uints;
 struct bdd;
 typedef std::shared_ptr<class bdd_handle> spbdd_handle;
 typedef const spbdd_handle& cr_spbdd_handle;
@@ -37,16 +45,20 @@ spbdd_handle from_bit(uint_t b, bool v);
 bool leaf(cr_spbdd_handle h);
 bool trueleaf(cr_spbdd_handle h);
 std::wostream& out(std::wostream& os, cr_spbdd_handle x);
-spbdd_handle bdd_and(cr_spbdd_handle x, cr_spbdd_handle y);
-spbdd_handle bdd_or(cr_spbdd_handle x, cr_spbdd_handle y);
+spbdd_handle operator&&(cr_spbdd_handle x, cr_spbdd_handle y);
+spbdd_handle operator||(cr_spbdd_handle x, cr_spbdd_handle y);
+spbdd_handle operator/(cr_spbdd_handle x, const bools& b);
+spbdd_handle operator^(cr_spbdd_handle x, const uints& m);
 spbdd_handle bdd_ite(cr_spbdd_handle x, cr_spbdd_handle y, cr_spbdd_handle z);
 spbdd_handle bdd_and_many(const bdd_handles& v);
 vbools allsat(cr_spbdd_handle x, uint_t nvars);
 
 class bdd {
 	friend class bdd_handle;
-	friend spbdd_handle bdd_and(cr_spbdd_handle x, cr_spbdd_handle y);
-	friend spbdd_handle bdd_or(cr_spbdd_handle x, cr_spbdd_handle y);
+	friend spbdd_handle operator&&(cr_spbdd_handle x, cr_spbdd_handle y);
+	friend spbdd_handle operator||(cr_spbdd_handle x, cr_spbdd_handle y);
+	friend spbdd_handle operator/(cr_spbdd_handle x, const bools& b);
+	friend spbdd_handle operator^(cr_spbdd_handle x, const uints& m);
 	friend spbdd_handle bdd_ite(cr_spbdd_handle x, cr_spbdd_handle y,
 		cr_spbdd_handle z);
 	friend spbdd_handle bdd_and_many(const bdd_handles& v);
@@ -71,7 +83,15 @@ class bdd {
 	static int_t bdd_and(int_t x, int_t y);
 	static int_t bdd_or(int_t x, int_t y) { return -bdd_and(-x, -y); }
 	static int_t bdd_ite(int_t x, int_t y, int_t z);
+	static int_t bdd_ite_var(uint_t x, int_t y, int_t z);
 	static int_t bdd_and_many(bdds v);
+	static int_t bdd_ex(int_t x, const bools& b,
+		std::unordered_map<int_t, int_t>& memo);
+	static int_t bdd_permute(const int_t& x, const uints& m,
+		std::unordered_map<int_t, int_t>& memo);
+	static int_t bdd_permute_ex(int_t x, const bools& b, const uints& m,
+		size_t last, std::unordered_map<int_t, int_t>& memo);
+	static int_t bdd_permute_ex(int_t x, const bools& b, const uints& m);
 	static void mark(int_t i) { S.insert(abs(i)); }
 	static void unmark(int_t i) { S.erase(abs(i)); }
 	inline static int_t add(uint_t v, int_t h, int_t l);
@@ -79,6 +99,7 @@ class bdd {
 	inline static bool leaf(int_t t) { return abs(t) == T; }
 	inline static bool trueleaf(int_t t) { return t > 0; }
 	static std::wostream& out(std::wostream& os, int_t x);
+	static void gc();
 	int_t h, l;
 public:
 	bdd(){}
@@ -90,7 +111,6 @@ public:
 		return hash == b.hash && v == b.v && h == b.h && l == b.l;
 	}
 	static void init();
-	static void gc();
 };
 
 class bdd_handle {
@@ -101,9 +121,8 @@ class bdd_handle {
 	static std::unordered_map<int_t, std::weak_ptr<bdd_handle>> M;
 public:
 	int_t b;
-
 	static spbdd_handle get(int_t b);
 	static spbdd_handle get(uint_t v, cr_spbdd_handle h, cr_spbdd_handle l);
 	static spbdd_handle T, F;
-	~bdd_handle() { if (abs(b) > 1) bdd::unmark(b); M.erase(b); }
+	~bdd_handle() { if (abs(b) > 1) bdd::unmark(b), M.erase(b); }
 };
