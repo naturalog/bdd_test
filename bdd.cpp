@@ -10,14 +10,14 @@ unordered_map<ite_memo, int_t> bdd::C;
 unordered_map<bdds, int_t> bdd::AM;
 unordered_set<int_t> bdd::S;
 unordered_map<int_t, weak_ptr<bdd_handle>> bdd_handle::M;
-typedef vector<bool> bools;
-typedef vector<bools> vbools;
+spbdd_handle bdd_handle::T, bdd_handle::F;
 
 void bdd::init() {
 	V.emplace_back(0, 0, 0), // dummy
 	V.back().rehash(), T = 1, F = -1,
 	V.emplace_back(0, 1, 1), V.back().rehash(),
-	M.emplace(V.back().getkey(), 1), mark(0), mark(T), mark(F);
+	M.emplace(V.back().getkey(), 1), mark(0), mark(T), mark(F),
+	bdd_handle::T = bdd_handle::get(T), bdd_handle::F = bdd_handle::get(F);
 }
 
 int_t bdd::add(uint_t v, int_t h, int_t l) {
@@ -248,25 +248,71 @@ void bdd_handle::update(const vector<int_t>& p, const unordered_set<int_t>& G) {
 }
 #undef f
 
-void sat(uint_t v, uint_t nvars, int_t t, bools& p, vbools& r) {
-	if (bdd::leaf(t) && !bdd::trueleaf(t)) return;
-	if (!bdd::leaf(t) && v < getnode(abs(t)).v)
+spbdd_handle bdd_handle::get(int_t b) {
+	auto it = M.find(b);
+	if (it != M.end()) return it->second.lock();
+	spbdd_handle h(new bdd_handle(b));
+	return	M.emplace(b, std::weak_ptr<bdd_handle>(h)), h;
+}
+
+spbdd_handle bdd_and(cr_spbdd_handle x, cr_spbdd_handle y) {
+	return bdd_handle::get(bdd::bdd_and(x->b, y->b));
+}
+
+spbdd_handle bdd_or(cr_spbdd_handle x, cr_spbdd_handle y) {
+	return bdd_handle::get(bdd::bdd_or(x->b, y->b));
+}
+
+spbdd_handle bdd_ite(cr_spbdd_handle x, cr_spbdd_handle y, cr_spbdd_handle z) {
+	return bdd_handle::get(bdd::bdd_ite(x->b, y->b, z->b));
+}
+
+spbdd_handle bdd_and_many(const bdd_handles& v) {
+	bdds b(v.size());
+	for (size_t n = 0; n != v.size(); ++n) b[n] = v[n]->b;
+	return bdd_handle::get(bdd::bdd_and_many(move(b)));
+}
+
+void bdd::sat(uint_t v, uint_t nvars, int_t t, bools& p, vbools& r) {
+	if (t == F) return;
+	if (!leaf(t) && v < getnode(abs(t)).v)
 		p[v - 1] = true, sat(v + 1, nvars, t, p, r),
 		p[v - 1] = false, sat(v + 1, nvars, t, p, r);
 	else if (v != nvars) {
-		p[v - 1] = true, sat(v + 1, nvars, bdd::hi(t), p, r),
-		p[v - 1] = false, sat(v + 1, nvars, bdd::lo(t), p, r);
+		p[v - 1] = true, sat(v + 1, nvars, hi(t), p, r),
+		p[v - 1] = false, sat(v + 1, nvars, lo(t), p, r);
 	} else	r.push_back(p);
 }
 
-vbools allsat(int_t x, uint_t nvars) {
+vbools bdd::allsat(int_t x, uint_t nvars) {
 	bools p(nvars);
 	vbools r;
 	return sat(1, nvars + 1, x, p, r), r;
 }
 
+vbools allsat(cr_spbdd_handle x, uint_t nvars) {
+	return bdd::allsat(x->b, nvars);
+}
+
+spbdd_handle bdd_handle::get(uint_t v, cr_spbdd_handle h, cr_spbdd_handle l) {
+	return get(bdd::add(v, h->b, l->b));
+}
+
+spbdd_handle from_bit(uint_t b, bool v) {
+	return bdd_handle::get(bdd::from_bit(b, v));
+}
+
+bool leaf(cr_spbdd_handle h) { return bdd::leaf(h->b); }
+bool trueleaf(cr_spbdd_handle h) { return bdd::trueleaf(h->b); }
+wostream& out(wostream& os, cr_spbdd_handle x) { return bdd::out(os, x->b); }
+
 size_t std::hash<ite_memo>::operator()(const ite_memo& m) const {
 	return hash_pair(m[0], hash_pair(m[1], m[2]));
+}
+
+size_t std::hash<std::tuple<uint_t, uint_t, int_t, int_t>>::operator()(
+	const std::tuple<uint_t,uint_t,int_t,int_t>& k) const {
+	return std::get<0>(k);
 }
 
 size_t std::hash<bdds>::operator()(const bdds& b) const {
@@ -294,24 +340,24 @@ wostream& operator<<(wostream& os, const vbools& x) {
 	return os;
 }
 
-int_t rand_bdd(int_t n = 5) {
-	if (!n) return bdd::bdd_ite(
-			bdd::from_bit(random()%10, random()&1),
-			bdd::from_bit(random()%10, random()&1),
-			bdd::from_bit(random()%10, random()&1));
-	return bdd::bdd_ite(rand_bdd(n-1), rand_bdd(n-1), rand_bdd(n-1));
+spbdd_handle rand_bdd(int_t n = 5) {
+	if (!n) return bdd_ite(
+			from_bit(random()%10, random()&1),
+			from_bit(random()%10, random()&1),
+			from_bit(random()%10, random()&1));
+	return bdd_ite(rand_bdd(n-1), rand_bdd(n-1), rand_bdd(n-1));
 }
 
 void test_and_many() {
 	set<spbdd_handle> s;
 	for (size_t k = 0; k != 100; ++k) {
-		bdds b;
+		bdd_handles b;
 		for (size_t n = 0; n != 8; ++n) b.push_back(rand_bdd());
-		int_t r = T;
-		for (int_t i : b) r = bdd::bdd_and(r, i);
-		assert(r == bdd::bdd_and_many(b));
+		spbdd_handle r = bdd_handle::T;
+		for (cr_spbdd_handle i : b) r = bdd_and(r, i);
+		assert(r == bdd_and_many(b));
 		cout<<k<<endl;
-		if (random()&1) s.insert(bdd_handle::get(r));
+		if (random()&1) s.insert(r);
 		bdd::gc();
 	}
 }
@@ -319,22 +365,23 @@ void test_and_many() {
 int main() {
 	bdd::init();
 	test_and_many();
+	set<spbdd_handle> s;
 	for (size_t n = 0; n != 10000000; ++n) {
-		const int_t x = bdd::from_bit(random()%10000+1, true);
-		const int_t y = bdd::from_bit(random()%10000+1, false);
-		const int_t z = bdd::from_bit(random()%10000+1, false);
-		const int_t t = bdd::bdd_ite(x, y, z);
-		if (random()&1) bdd::mark(t);
+		const spbdd_handle x = from_bit(random()%10000+1, true);
+		const spbdd_handle y = from_bit(random()%10000+1, false);
+		const spbdd_handle z = from_bit(random()%10000+1, false);
+		const spbdd_handle t = bdd_ite(x, y, z);
+		if (random()&1) s.insert(t);
 		bdd::gc();
 	}
-	const int_t x = bdd::from_bit(0, true);
-	const int_t y = bdd::from_bit(1, false);
-	int_t z = bdd::bdd_and(x, y);
-	assert(bdd::from_bit(0, true) == -bdd::from_bit(0, false));
-	assert(bdd::from_bit(3, true) == -bdd::from_bit(3, false));
-	bdd::out(wcout, x) << endl;
-	bdd::out(wcout, y) << endl;
-	bdd::out(wcout, z) << endl << endl;
+	const spbdd_handle x = from_bit(0, true);
+	const spbdd_handle y = from_bit(1, false);
+	spbdd_handle z = bdd_and(x, y);
+	assert(from_bit(0, true)->b == -from_bit(0, false)->b);
+	assert(from_bit(3, true)->b == -from_bit(3, false)->b);
+	out(wcout, x) << endl;
+	out(wcout, y) << endl;
+	out(wcout, z) << endl << endl;
 	wcout << allsat(x, 2) << endl;
 	wcout << allsat(y, 2) << endl;
 	wcout << allsat(z, 2) << endl;
